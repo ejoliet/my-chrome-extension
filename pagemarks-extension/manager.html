@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PageMarks Library</title>
+  <link rel="stylesheet" href="manager.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="logo">P</div><div><strong>PageMarks</strong><span>Local annotation library</span></div></div>
+      <nav>
+        <button class="nav-item active" data-filter="all"><span>⌘</span>All annotations <b id="navAll">0</b></button>
+        <button class="nav-item" data-filter="highlight"><span>▰</span>Highlights <b id="navHighlights">0</b></button>
+        <button class="nav-item" data-filter="sticky"><span>✎</span>Sticky notes <b id="navStickies">0</b></button>
+        <button class="nav-item" data-filter="link"><span>↗</span>Link notes <b id="navLinks">0</b></button>
+      </nav>
+      <div class="sidebar-section">
+        <label>Backup and export</label>
+        <button class="side-action" data-export="json">JSON backup</button>
+        <button class="side-action" data-export="markdown">Markdown</button>
+        <button class="side-action" data-export="csv">CSV spreadsheet</button>
+        <button class="side-action" data-export="html">Readable HTML</button>
+        <button class="side-action" id="importButton">Import JSON</button>
+        <input id="importFile" type="file" accept="application/json,.json" hidden>
+      </div>
+      <div class="privacy"><span></span><div><strong>Private by default</strong><small>No account. No server. No tracking.</small></div></div>
+    </aside>
+
+    <main>
+      <header class="topbar">
+        <div><h1>Your reading memory</h1><p>Search every highlight, reaction, link, and note you saved.</p></div>
+        <button id="deleteAll" class="danger-outline">Delete all data</button>
+      </header>
+
+      <section class="overview">
+        <article><span class="metric-icon violet">⌘</span><div><strong id="totalNotes">0</strong><small>annotations</small></div></article>
+        <article><span class="metric-icon yellow">▰</span><div><strong id="totalPages">0</strong><small>web pages</small></div></article>
+        <article><span class="metric-icon mint">#</span><div><strong id="totalTags">0</strong><small>unique tags</small></div></article>
+        <article><span class="metric-icon blue">◷</span><div><strong id="recentCount">0</strong><small>added this week</small></div></article>
+      </section>
+
+      <section class="workspace">
+        <div class="controls">
+          <div class="search-wrap"><span>⌕</span><input id="search" type="search" placeholder="Search notes, highlighted text, domains, or tags…"></div>
+          <select id="sort"><option value="updated">Recently updated</option><option value="created">Recently created</option><option value="site">Website A–Z</option></select>
+        </div>
+        <div id="resultMeta" class="result-meta"></div>
+        <div id="library" class="library"></div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast"></div>
+  <script src="shared.js"></script>
+  <script src="manager.js"></script>
+</body>
+</html>

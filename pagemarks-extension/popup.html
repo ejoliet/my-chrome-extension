@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PageMarks</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main>
+    <header>
+      <div class="logo">P</div>
+      <div>
+        <h1>PageMarks</h1>
+        <p>Remember the web, locally.</p>
+      </div>
+    </header>
+
+    <section id="summary" class="summary loading">
+      <div class="page-title">Reading this page…</div>
+      <div class="stats">
+        <span><strong>—</strong> notes</span>
+        <span><strong>—</strong> highlights</span>
+        <span><strong>—</strong> stickies</span>
+      </div>
+    </section>
+
+    <section class="actions">
+      <button id="openPanel" class="primary"><span>☰</span><div><strong>Open page notes</strong><small>Review and edit annotations</small></div></button>
+      <div class="grid">
+        <button id="addSticky"><span>✎</span><strong>New sticky</strong><small>Place on page</small></button>
+        <button id="highlight"><span>▰</span><strong>Highlight</strong><small>Selected text</small></button>
+      </div>
+      <button id="allNotes" class="secondary"><span>⌘</span><div><strong>All saved notes</strong><small>Search, organize, export, and import</small></div><span class="arrow">→</span></button>
+    </section>
+
+    <footer><span class="privacy-dot"></span> Stored only in this Chrome profile</footer>
+  </main>
+  <script src="popup.js"></script>
+</body>
+</html>

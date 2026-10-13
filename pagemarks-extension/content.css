@@ -1,0 +1,5 @@
+::highlight(pm-yellow) { background: rgba(255, 216, 90, .62); text-decoration: underline 2px rgba(175, 124, 0, .58); text-underline-offset: 2px; }
+::highlight(pm-mint) { background: rgba(112, 223, 176, .52); text-decoration: underline 2px rgba(16, 130, 88, .55); text-underline-offset: 2px; }
+::highlight(pm-blue) { background: rgba(121, 184, 255, .50); text-decoration: underline 2px rgba(28, 105, 196, .55); text-underline-offset: 2px; }
+::highlight(pm-pink) { background: rgba(255, 145, 187, .50); text-decoration: underline 2px rgba(196, 45, 109, .52); text-underline-offset: 2px; }
+::highlight(pm-violet) { background: rgba(181, 156, 255, .52); text-decoration: underline 2px rgba(95, 65, 191, .52); text-underline-offset: 2px; }

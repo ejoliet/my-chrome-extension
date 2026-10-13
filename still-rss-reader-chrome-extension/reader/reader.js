@@ -1,0 +1,74 @@
+'use strict';
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const DB='still-rss-v1';let db,state={feeds:[],articles:[],proxy:''},view='all',sort='latest',busy=false,feedSelection=null;
+function toast(s){const e=$('#toast');e.textContent=s;e.style.display='block';clearTimeout(toast.timer);toast.timer=setTimeout(()=>e.style.display='none',3800)}
+function message(s,error=false){$('#status').textContent=s;$('#status').classList.toggle('error',error)}
+function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>r.result.createObjectStore('data');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+function dbGet(k){return new Promise((res,rej)=>{const r=db.transaction('data').objectStore('data').get(k);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+function dbSet(k,v){return new Promise((res,rej)=>{const t=db.transaction('data','readwrite');t.objectStore('data').put(v,k);t.oncomplete=res;t.onerror=()=>rej(t.error)})}
+async function save(){await dbSet('library',state)}
+async function syncFeeds(){await chrome.storage.local.set({stillFeeds:state.feeds.map(f=>({...f}))})}
+async function addSharedFeeds(feeds){
+  if(!Array.isArray(feeds))return 0;
+  let added=0;
+  for(const item of feeds){
+    const url=safeURL(item?.url);
+    if(!url||state.feeds.some(f=>f.url===url))continue;
+    state.feeds.push({url,name:String(item.name||new URL(url).hostname).slice(0,120),cookies:!!item.cookies,customName:!!item.customName,lastError:''});
+    added++;
+  }
+  if(added){await save();render();if(!busy)refresh();}
+  return added;
+}
+
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function safeURL(s){try{const u=new URL(s);return /^https?:$/.test(u.protocol)?u.href:null}catch{return null}}
+function text(html){const d=new DOMParser().parseFromString(html||'','text/html');return (d.body.textContent||'').replace(/\s+/g,' ').trim()}
+function date(ts){return new Date(ts).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})}
+function relative(ts){const d=Date.now()-ts;if(d<3600000)return Math.max(1,Math.round(d/60000))+'m ago';if(d<86400000)return Math.round(d/3600000)+'h ago';return date(ts)}
+function id(s){let h=2166136261;for(const c of s){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return (h>>>0).toString(36)}
+function parse(xml,url){const doc=new DOMParser().parseFromString(xml,'application/xml');if(doc.querySelector('parsererror'))throw Error('Invalid XML');let atom=doc.documentElement.localName==='feed',items=[...doc.getElementsByTagName(atom?'entry':'item')];if(!items.length&&!atom&&!doc.querySelector('channel'))throw Error('Not an RSS/Atom feed');const get=(node,name)=>[...node.children].find(e=>e.localName===name)?.textContent?.trim()||'';let title=get(atom?doc.documentElement:doc.querySelector('channel')||doc.documentElement,'title');const articles=items.slice(0,150).map(n=>{let link=atom?[...n.children].filter(e=>e.localName==='link').find(e=>!e.getAttribute('rel')||e.getAttribute('rel')==='alternate')?.getAttribute('href'):get(n,'link');link=safeURL(link)||url;const headline=get(n,'title')||'Untitled';const guid=get(n,'id')||get(n,'guid')||link+headline;const raw=get(n,'summary')||get(n,'description')||get(n,'content')||get(n,'encoded');const timestamp=Date.parse(get(n,'pubDate')||get(n,'published')||get(n,'updated')||'')||Date.now();return{id:id(url+'|'+guid),feed:url,title:headline,link,summary:text(raw).slice(0,500),timestamp,read:false,saved:false}});return{title,articles}}
+async function fetchFeed(f){
+const permission={origins:[`${new URL(f.url).protocol}//${new URL(f.url).hostname}/*`]};
+const allowed=await chrome.permissions.contains(permission);
+if(!allowed){f.lastError='Site permission needed. Re-add the feed or grant access when prompted.';return -1;}
+const url=f.url;const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),14000);try{const response=await fetch(url,{credentials:f.cookies?'include':'omit',signal:controller.signal,cache:'no-store'});if(!response.ok)throw Error('HTTP '+response.status+(response.status===401||response.status===403?' — login may be required':''));const xml=await response.text();const parsed=parse(xml,f.url);if(!f.customName&&parsed.title)f.name=parsed.title;f.lastError='';f.updated=Date.now();const existing=new Map(state.articles.map(a=>[a.id,a]));for(const a of parsed.articles){const prev=existing.get(a.id);existing.set(a.id,prev?{...a,read:prev.read,saved:prev.saved}:a)}state.articles=[...existing.values()].sort((a,b)=>b.timestamp-a.timestamp).slice(0,2500);return parsed.articles.length}catch(e){f.lastError=e.name==='AbortError'?'Timed out':String(e.message||e);return -1}finally{clearTimeout(timeout)}}
+async function refresh(){if(busy||!state.feeds.length)return;busy=true;$('#refresh').disabled=true;message('Refreshing '+state.feeds.length+' source(s)…');let ok=0,fail=0;for(const f of state.feeds){const n=await fetchFeed(f);n<0?fail++:ok++;await save();render()}busy=false;$('#refresh').disabled=false;message(`${ok} source(s) updated${fail?', '+fail+' unavailable':''}. ${fail?'See Manage feeds for details.':''}`,fail>0);render()}
+function filtered(){const q=$('#search').value.toLowerCase().trim();return state.articles.filter(a=>(!feedSelection||a.feed===feedSelection)&&(view!=='unread'||!a.read)&&(view!=='saved'||a.saved)&&(!q||(a.title+' '+a.summary+' '+(state.feeds.find(f=>f.url===a.feed)?.name||'')).toLowerCase().includes(q))).sort((a,b)=>sort==='latest'?b.timestamp-a.timestamp:a.timestamp-b.timestamp)}
+function render(){const total=state.articles.length;$('#allCount').textContent=total||'';$('#unreadCount').textContent=state.articles.filter(a=>!a.read).length||'';$('#savedCount').textContent=state.articles.filter(a=>a.saved).length||'';$$('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view&&!feedSelection));$$('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===sort));$('#feedlist').innerHTML=state.feeds.map(f=>`<button class="feedbutton ${feedSelection===f.url?'active':''}" data-feed="${esc(f.url)}"><span>${esc(f.name)}</span><span class="count">${state.articles.filter(a=>a.feed===f.url&&!a.read).length||''}</span></button>`).join('');$('#manageList').innerHTML=state.feeds.length?state.feeds.map(f=>`<div class="manageitem"><div><strong>${esc(f.name)} ${f.lastError?'⚠':''}</strong><small title="${esc(f.lastError||f.url)}">${esc(f.lastError||f.url)}</small></div><button data-remove="${esc(f.url)}" title="Remove source">Remove</button></div>`).join(''):'<p>No feeds added yet.</p>';
+const filteredArticles=filtered();$('#heading').textContent=feedSelection?(state.feeds.find(f=>f.url===feedSelection)?.name||'Your source'):view==='saved'?'Worth keeping.':view==='unread'?'To be read.':'The daily read.';$('#subtitle').textContent=feedSelection?'Stories from this source.':view==='saved'?'Everything you tucked away for later.':view==='unread'?'Unopened stories, when you have a moment.':'A little less noise. A little more signal.';
+$('#articles').innerHTML=filteredArticles.map(a=>{const f=state.feeds.find(f=>f.url===a.feed);return `<article class="article ${a.read?'':'unread'}"><div><div class="meta">${!a.read?'<span class="unreadpin" title="Unread"></span>':''}<span>${esc(f?.name||'Feed')}</span><span>·</span><time datetime="${new Date(a.timestamp).toISOString()}">${relative(a.timestamp)}</time></div><h2><a href="${esc(a.link)}" target="_blank" rel="noopener noreferrer" data-read="${a.id}">${esc(a.title)}</a></h2>${a.summary?`<p>${esc(a.summary)}</p>`:''}</div><div class="actions"><button data-toggle-save="${a.id}" class="${a.saved?'saved':''}" title="${a.saved?'Unsave':'Save for later'}" aria-label="${a.saved?'Unsave':'Save for later'}">${a.saved?'★':'☆'}</button><button data-toggle-read="${a.id}" title="Mark ${a.read?'unread':'read'}" aria-label="Mark ${a.read?'unread':'read'}">${a.read?'◯':'✓'}</button></div></article>`}).join('')||`<div class="empty"><div class="illustration">✳</div><h2>${state.feeds.length?'A quiet moment.':'A quieter way to read.'}</h2><p>${state.feeds.length?'No articles match this view. Try another filter or refresh your feeds.':'Add your favorite RSS or Atom sources. Your reading list stays in your browser, with no account needed.'}</p>${!state.feeds.length?'<button class="primary" data-open="add">Add your first feed</button>':''}</div>`}
+function show(name){const el=$('#'+name+'Dialog');el.showModal();if(name==='add')$('#feedUrl').focus()}
+async function mutate(action,key){const a=state.articles.find(x=>x.id===key);if(!a)return;if(action==='read')a.read=true;if(action==='toggle-read')a.read=!a.read;if(action==='toggle-save')a.saved=!a.saved;await save();render()}
+function download(name,data){const blob=new Blob([data],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),10000)}
+const bytes=a=>Array.from(a),encode=s=>new TextEncoder().encode(s),decode=b=>new TextDecoder().decode(b);
+async function keyFrom(pass,salt){const source=await crypto.subtle.importKey('raw',encode(pass),'PBKDF2',false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:250000,hash:'SHA-256'},source,{name:'AES-GCM',length:256},false,['encrypt','decrypt'])}
+async function exportData(encrypted){const feeds=state.feeds.map(({url,name,cookies,customName})=>({url,name,cookies:!!cookies,customName:!!customName}));const value={type:'still-feeds',version:1,feeds};if(!encrypted){download('still-feeds.json',JSON.stringify(value,null,2));return}const pass=$('#passphrase').value;if(pass.length<12){toast('Use a passphrase of at least 12 characters');return}if(!crypto.subtle){toast('Encryption needs HTTPS or localhost');return}const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12)),key=await keyFrom(pass,salt);const cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,encode(JSON.stringify(value)));download('still-feeds.encrypted.json',JSON.stringify({type:'still-encrypted',version:1,salt:bytes(salt),iv:bytes(iv),data:bytes(new Uint8Array(cipher))}));toast('Encrypted export created')}
+async function doImport(file){if(!file)return;try{let payload=JSON.parse(await file.text());if(payload.type==='still-encrypted'){const pass=$('#passphrase').value;if(!pass)throw Error('Enter the export passphrase');const key=await keyFrom(pass,new Uint8Array(payload.salt));const decrypted=await crypto.subtle.decrypt({name:'AES-GCM',iv:new Uint8Array(payload.iv)},key,new Uint8Array(payload.data));payload=JSON.parse(decode(decrypted))}if(payload.type!=='still-feeds'||!Array.isArray(payload.feeds))throw Error('Not a Still feed export');let added=0;for(const f of payload.feeds){const url=safeURL(f.url);if(!url||state.feeds.some(x=>x.url===url))continue;state.feeds.push({url,name:String(f.name||new URL(url).hostname).slice(0,120),cookies:!!f.cookies,customName:!!f.customName});added++}await save();await syncFeeds();render();$('#shareDialog').close();toast(`${added} feeds imported`);if(added)refresh()}catch(e){toast('Import failed: '+e.message)}}
+async function init(){
+  try{
+    db=await openDB();const stored=await dbGet('library');if(stored)state={...state,...stored};
+    const data=await chrome.storage.local.get(['stillFeeds','pendingFeeds']);
+    // Migrate legacy popup queue without deleting existing IndexedDB subscriptions.
+    const shared=Array.isArray(data.stillFeeds)?data.stillFeeds:[];
+    const pending=Array.isArray(data.pendingFeeds)?data.pendingFeeds:[];
+    await addSharedFeeds([...shared,...pending]);
+    await syncFeeds();
+    if(pending.length)await chrome.storage.local.remove('pendingFeeds');
+  }catch(e){message('Local storage unavailable: '+e.message,true);return}
+  $('#today').textContent=new Date().toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'});
+  render();if(state.feeds.length&&!busy)refresh();
+}
+chrome.storage.onChanged.addListener((changes,area)=>{
+  if(area==='local'&&changes.stillFeeds?.newValue) {
+    addSharedFeeds(changes.stillFeeds.newValue).catch(e=>message(e.message,true));
+  }
+});
+document.addEventListener('click',async e=>{const b=e.target.closest('button,a[data-read]');if(!b)return;if(b.dataset.open){if(b.dataset.open==='add'&&$('#manageDialog').open)$('#manageDialog').close();show(b.dataset.open)}if(b.hasAttribute('data-close'))b.closest('dialog').close();if(b.dataset.view){view=b.dataset.view;feedSelection=null;render()}if(b.dataset.feed){feedSelection=b.dataset.feed;view='all';render()}if(b.dataset.tab){sort=b.dataset.tab;render()}if(b.dataset.read)await mutate('read',b.dataset.read);if(b.dataset.toggleSave)await mutate('toggle-save',b.dataset.toggleSave);if(b.dataset.toggleRead)await mutate('toggle-read',b.dataset.toggleRead);if(b.dataset.remove){if(confirm('Remove this source and its cached articles?')){state.feeds=state.feeds.filter(f=>f.url!==b.dataset.remove);state.articles=state.articles.filter(a=>a.feed!==b.dataset.remove);if(feedSelection===b.dataset.remove)feedSelection=null;await save();await syncFeeds();render()}}});
+$('#addForm').addEventListener('submit',async e=>{e.preventDefault();const url=safeURL($('#feedUrl').value.trim());if(!url)return toast('Enter a valid HTTPS or HTTP URL');if(state.feeds.some(f=>f.url===url))return toast('Feed already in your library');const n=$('#feedName').value.trim();
+const origin=`${new URL(url).protocol}//${new URL(url).hostname}/*`;
+let granted=false;
+try{granted=await chrome.permissions.request({origins:[origin]});}catch(e){return toast('Permission error: '+e.message)}
+if(!granted)return toast('Host access is required to refresh this feed');
+state.feeds.push({url,name:n||new URL(url).hostname,customName:!!n,cookies:$('#feedCookies').checked,lastError:''});await save();await syncFeeds();$('#addDialog').close();$('#addForm').reset();render();refresh()});
+$('#search').addEventListener('input',render);$('#refresh').addEventListener('click',refresh);$('#manageRefresh').addEventListener('click',()=>{$('#manageDialog').close();refresh()});$('#exportEncrypted').addEventListener('click',()=>exportData(true).catch(e=>toast(e.message)));$('#exportPlain').addEventListener('click',()=>exportData(false));$('#importEncrypted').addEventListener('click',()=>$('#importFile').click());$('#importFile').addEventListener('change',e=>doImport(e.target.files?.[0]));$('#clearAll').addEventListener('click',async()=>{if(!confirm('Erase all feeds, cached articles, and settings from this browser?'))return;state={feeds:[],articles:[],proxy:''};await save();await syncFeeds();feedSelection=null;view='all';render();$('#shareDialog').close();toast('Local library erased')});init();

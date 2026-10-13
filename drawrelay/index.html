@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#5b45f5">
+  <meta name="description" content="DrawRelay is a private, zero-install P2P drawing and guessing game.">
+  <title>DrawRelay — Draw. Guess. Laugh.</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/icon-192.png">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to game</a>
+  <div id="offline-banner" class="offline-banner hidden" role="status">You are offline. Existing app screens work, but internet rooms need signaling.</div>
+
+  <header class="app-header">
+    <button id="brand-button" class="brand-button" type="button" aria-label="Go to DrawRelay home">
+      <span class="brand-mark" aria-hidden="true">✎</span>
+      <span>DrawRelay</span>
+    </button>
+    <div class="header-actions">
+      <button id="connection-pill" class="connection-pill" type="button" aria-label="Connection status">
+        <span class="status-dot" aria-hidden="true"></span><span>Ready</span>
+      </button>
+      <button id="settings-button" class="icon-button" type="button" aria-label="Open settings">⚙</button>
+    </div>
+  </header>
+
+  <main id="main" class="app-main">
+    <section id="home-screen" class="screen active" aria-labelledby="home-title">
+      <div class="hero-card">
+        <div class="hero-art" aria-hidden="true">
+          <span class="scribble scribble-one"></span>
+          <span class="scribble scribble-two"></span>
+          <span class="hero-pencil">✎</span>
+        </div>
+        <p class="eyebrow">Private browser game</p>
+        <h1 id="home-title">Draw. Guess.<br><span>Laugh together.</span></h1>
+        <p class="hero-copy">Start a room, share one link, and play from any phone or tablet. No accounts. No installation.</p>
+        <button id="create-room-button" class="primary-button hero-button" type="button">Create a game</button>
+        <div class="divider"><span>or join a game</span></div>
+        <form id="join-room-form" class="join-form" novalidate>
+          <label for="room-code-input">Room code</label>
+          <div class="input-action-row">
+            <input id="room-code-input" name="room" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" maxlength="8" placeholder="ABCD2345" aria-describedby="room-code-help">
+            <button class="secondary-button" type="submit">Join</button>
+          </div>
+          <p id="room-code-help" class="field-help">The host’s 8-character code.</p>
+        </form>
+        <div class="trust-row" aria-label="Privacy highlights">
+          <span>✓ No account</span><span>✓ P2P play</span><span>✓ Local packs</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="join-screen" class="screen" aria-labelledby="join-title">
+      <div class="panel narrow-panel">
+        <button class="back-button" data-action="home" type="button">← Back</button>
+        <p class="eyebrow">Joining room <strong id="join-room-code"></strong></p>
+        <h1 id="join-title">What should we call you?</h1>
+        <p>Use a name everyone in the room will recognize.</p>
+        <form id="nickname-form" class="stack-form" novalidate>
+          <label for="nickname-input">Nickname</label>
+          <input id="nickname-input" type="text" maxlength="24" autocomplete="nickname" placeholder="Your name">
+          <button id="join-now-button" class="primary-button" type="submit">Join game</button>
+        </form>
+        <div id="join-status" class="inline-status hidden" role="status"></div>
+      </div>
+    </section>
+
+    <section id="lobby-screen" class="screen" aria-labelledby="lobby-title">
+      <div class="lobby-layout">
+        <div class="panel room-panel">
+          <p class="eyebrow">Room ready</p>
+          <h1 id="lobby-title">Invite players</h1>
+          <div class="room-code-card">
+            <div>
+              <span class="small-label">Room code</span>
+              <strong id="lobby-room-code" class="room-code">--------</strong>
+            </div>
+            <button id="copy-code-button" class="icon-button outlined" type="button" aria-label="Copy room code">⧉</button>
+          </div>
+          <div id="qrcode" class="qr-code" aria-label="QR code to join this room"></div>
+          <p class="scan-copy">Scan to join — no app needed</p>
+          <div class="share-buttons">
+            <button id="share-room-button" class="primary-button" type="button">Share invite</button>
+            <button id="copy-link-button" class="secondary-button" type="button">Copy link</button>
+          </div>
+          <button id="fullscreen-lobby-button" class="text-button" type="button">Show on a TV or projector</button>
+        </div>
+
+        <div class="panel players-panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Lobby</p>
+              <h2>Players <span id="player-count">0</span>/<span id="player-limit">12</span></h2>
+            </div>
+            <span id="lobby-waiting-badge" class="badge">Waiting</span>
+          </div>
+          <div id="players-list" class="players-list" aria-live="polite"></div>
+          <div id="empty-players" class="empty-state">
+            <div class="empty-icon" aria-hidden="true">👋</div>
+            <strong>No players yet</strong>
+            <span>Share the code or QR above.</span>
+          </div>
+
+          <div id="host-lobby-controls" class="host-controls hidden">
+            <div class="settings-grid">
+              <label>Rounds
+                <select id="round-count-select">
+                  <option value="3">3 rounds</option>
+                  <option value="5" selected>5 rounds</option>
+                  <option value="8">8 rounds</option>
+                  <option value="10">10 rounds</option>
+                </select>
+              </label>
+              <label>Round time
+                <select id="round-seconds-select">
+                  <option value="45">45 seconds</option>
+                  <option value="60" selected>60 seconds</option>
+                  <option value="90">90 seconds</option>
+                  <option value="120">2 minutes</option>
+                </select>
+              </label>
+              <label>Drawer
+                <select id="drawer-mode-select">
+                  <option value="random" selected>Random</option>
+                  <option value="host">Host chooses</option>
+                </select>
+              </label>
+              <label>Word pack
+                <select id="word-pack-select">
+                  <option value="family">Family fun</option>
+                  <option value="easy">Easy words</option>
+                  <option value="custom">Session words</option>
+                </select>
+              </label>
+            </div>
+            <details class="custom-words-details">
+              <summary>Add session words</summary>
+              <label for="custom-words-input">One word or phrase per line</label>
+              <textarea id="custom-words-input" rows="5" maxlength="10000" placeholder="Birthday cake&#10;Space telescope&#10;Golden retriever"></textarea>
+              <p class="field-help">These words stay on the host device and disappear when this session ends unless saved in a Premium Kit.</p>
+            </details>
+            <button id="start-game-button" class="primary-button start-button" type="button" disabled>Start game</button>
+            <p id="start-help" class="field-help centered">At least 2 players are needed.</p>
+          </div>
+
+          <div id="player-lobby-message" class="player-waiting hidden">
+            <div class="pulse-ring" aria-hidden="true"></div>
+            <h2>You’re in</h2>
+            <p>The host will start the game.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="game-screen" class="screen game-screen" aria-labelledby="game-role-title">
+      <div class="game-topbar">
+        <div>
+          <span id="round-label" class="eyebrow">Round 1 of 5</span>
+          <h1 id="game-role-title">Watch and guess</h1>
+        </div>
+        <div class="timer-wrap" aria-label="Time remaining">
+          <svg class="timer-ring" viewBox="0 0 48 48" aria-hidden="true">
+            <circle class="timer-track" cx="24" cy="24" r="20"></circle>
+            <circle id="timer-progress" class="timer-progress" cx="24" cy="24" r="20"></circle>
+          </svg>
+          <strong id="timer-value">60</strong>
+        </div>
+      </div>
+
+      <div class="game-layout">
+        <div class="canvas-column">
+          <div id="word-hint" class="word-hint" aria-live="polite">_ _ _ _</div>
+          <div id="drawer-word" class="drawer-word hidden" aria-live="polite">Draw: <strong></strong></div>
+          <div class="canvas-frame">
+            <canvas id="drawing-canvas" aria-label="Shared drawing canvas"></canvas>
+            <div id="canvas-overlay" class="canvas-overlay">
+              <div class="overlay-card">
+                <span class="spinner" aria-hidden="true"></span>
+                <strong>Getting the round ready…</strong>
+              </div>
+            </div>
+          </div>
+
+          <div id="drawing-toolbar" class="drawing-toolbar hidden" aria-label="Drawing tools">
+            <div class="tool-group" role="group" aria-label="Drawing tool">
+              <button class="tool-button active" data-tool="pen" type="button" aria-pressed="true">✎ <span>Pen</span></button>
+              <button class="tool-button" data-tool="eraser" type="button" aria-pressed="false">⌫ <span>Eraser</span></button>
+            </div>
+            <div class="color-tools" role="group" aria-label="Pen color">
+              <button class="color-button active" data-color="#171722" style="--swatch:#171722" type="button" aria-label="Black" aria-pressed="true"></button>
+              <button class="color-button" data-color="#e04455" style="--swatch:#e04455" type="button" aria-label="Red" aria-pressed="false"></button>
+              <button class="color-button" data-color="#2769e8" style="--swatch:#2769e8" type="button" aria-label="Blue" aria-pressed="false"></button>
+              <button class="color-button" data-color="#13a16f" style="--swatch:#13a16f" type="button" aria-label="Green" aria-pressed="false"></button>
+              <button class="color-button" data-color="#f3a712" style="--swatch:#f3a712" type="button" aria-label="Yellow" aria-pressed="false"></button>
+            </div>
+            <label class="brush-label">Size
+              <select id="brush-size-select" aria-label="Brush size">
+                <option value="3">Small</option>
+                <option value="7" selected>Medium</option>
+                <option value="14">Large</option>
+              </select>
+            </label>
+            <div class="tool-group">
+              <button id="undo-button" class="tool-button" type="button">↶ <span>Undo</span></button>
+              <button id="clear-button" class="tool-button danger-tool" type="button">× <span>Clear</span></button>
+            </div>
+          </div>
+
+          <form id="guess-form" class="guess-form hidden" novalidate>
+            <label for="guess-input">Your guess</label>
+            <div class="input-action-row">
+              <input id="guess-input" type="text" maxlength="80" autocomplete="off" placeholder="Type your guess…">
+              <button class="primary-button" type="submit">Guess</button>
+            </div>
+            <div id="guess-feedback" class="guess-feedback" aria-live="polite"></div>
+          </form>
+        </div>
+
+        <aside class="game-sidebar">
+          <section class="sidebar-card">
+            <div class="section-heading compact">
+              <h2>Scores</h2>
+              <button id="fullscreen-game-button" class="icon-button outlined" type="button" aria-label="Enter fullscreen">⛶</button>
+            </div>
+            <ol id="scoreboard" class="scoreboard"></ol>
+          </section>
+          <section class="sidebar-card guesses-card">
+            <h2>Guesses</h2>
+            <div id="guess-feed" class="guess-feed" aria-live="polite"></div>
+          </section>
+          <section id="host-round-controls" class="sidebar-card host-round-controls hidden">
+            <h2>Host controls</h2>
+            <div class="host-button-grid">
+              <button id="pause-round-button" class="secondary-button" type="button">Pause</button>
+              <button id="skip-round-button" class="secondary-button danger-outline" type="button">End round</button>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </section>
+
+    <section id="results-screen" class="screen" aria-labelledby="results-title">
+      <div class="panel results-panel">
+        <p id="results-eyebrow" class="eyebrow">Round complete</p>
+        <h1 id="results-title">The word was <span id="result-word"></span></h1>
+        <div id="round-winner" class="winner-card"></div>
+        <ol id="results-scoreboard" class="scoreboard large-scoreboard"></ol>
+        <div id="host-results-actions" class="results-actions hidden">
+          <button id="next-round-button" class="primary-button" type="button">Next round</button>
+        </div>
+        <div id="player-results-message" class="player-waiting hidden">
+          <span class="spinner" aria-hidden="true"></span>
+          <p>Waiting for the host…</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="final-screen" class="screen" aria-labelledby="final-title">
+      <div class="panel results-panel final-panel">
+        <div class="confetti" aria-hidden="true">✦</div>
+        <p class="eyebrow">Game complete</p>
+        <h1 id="final-title">Final leaderboard</h1>
+        <div id="champion-card" class="champion-card"></div>
+        <ol id="final-scoreboard" class="scoreboard large-scoreboard"></ol>
+        <div id="premium-cta" class="premium-cta hidden">
+          <span class="premium-icon" aria-hidden="true">★</span>
+          <div>
+            <strong>Save this game night and replay it anytime.</strong>
+            <p>Keep the words, rules, accessibility settings, and theme in a reusable Game Night Kit.</p>
+          </div>
+          <button id="save-kit-cta-button" class="premium-button" type="button">Save game night</button>
+        </div>
+        <div id="host-final-actions" class="results-actions hidden">
+          <button id="rematch-button" class="primary-button" type="button">Play again</button>
+          <button id="new-room-button" class="secondary-button" type="button">New room</button>
+        </div>
+        <div id="player-final-message" class="player-waiting hidden">
+          <p>The host can start another game.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="word-choice-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="word-choice-title">
+    <div class="modal-card word-choice-card">
+      <p class="eyebrow">You are drawing</p>
+      <h2 id="word-choice-title">Choose a word</h2>
+      <p>Only you can see these choices.</p>
+      <div id="word-options" class="word-options"></div>
+      <p class="field-help centered">A word will be chosen automatically if time runs out.</p>
+    </div>
+  </div>
+
+  <div id="settings-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="modal-card settings-modal-card">
+      <div class="modal-header">
+        <div><p class="eyebrow">DrawRelay</p><h2 id="settings-title">Settings</h2></div>
+        <button class="icon-button" data-close-modal="settings-modal" type="button" aria-label="Close settings">×</button>
+      </div>
+      <div class="settings-sections">
+        <section>
+          <h3>Accessibility</h3>
+          <label class="toggle-row"><span><strong>Large type</strong><small>Increase text and controls.</small></span><input id="large-type-toggle" type="checkbox"></label>
+          <label class="toggle-row"><span><strong>High contrast</strong><small>Use stronger borders and contrast.</small></span><input id="high-contrast-toggle" type="checkbox"></label>
+          <label class="toggle-row"><span><strong>Reduce motion</strong><small>Limit animations and effects.</small></span><input id="reduce-motion-toggle" type="checkbox"></label>
+          <label class="toggle-row"><span><strong>Sound</strong><small>Play round and success sounds.</small></span><input id="sound-toggle" type="checkbox" checked></label>
+          <label class="toggle-row"><span><strong>Vibration</strong><small>Use gentle haptics when supported.</small></span><input id="vibration-toggle" type="checkbox" checked></label>
+        </section>
+        <section>
+          <div class="section-heading compact">
+            <div><h3>Game Night Kits</h3><span id="premium-status" class="badge premium-badge">Premium</span></div>
+            <button id="unlock-premium-button" class="premium-button small" type="button">Unlock</button>
+          </div>
+          <p class="section-copy">Save complete game setups on this device and move them with encrypted exports.</p>
+          <div id="kit-controls" class="kit-controls locked">
+            <button id="save-current-kit-button" class="secondary-button" type="button">Save current setup</button>
+            <button id="import-kit-button" class="secondary-button" type="button">Import encrypted kit</button>
+            <input id="kit-file-input" type="file" accept="application/json,.drawrelay" hidden>
+            <div id="kits-list" class="kits-list"></div>
+          </div>
+        </section>
+        <section>
+          <h3>Privacy</h3>
+          <p class="privacy-copy">No account is required. Drawings and guesses are not sent to DrawRelay servers or analytics. Room signaling uses a third-party PeerServer; WebRTC connection metadata may be visible to network infrastructure. Gameplay travels through encrypted WebRTC connections and may use an encrypted TURN relay if direct connectivity fails. Preferences, packs, licenses, and kits remain on this device.</p>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div id="license-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="license-title">
+    <div class="modal-card narrow-modal">
+      <div class="modal-header">
+        <div><p class="eyebrow">Game Night Kits</p><h2 id="license-title">Unlock Premium</h2></div>
+        <button class="icon-button" data-close-modal="license-modal" type="button" aria-label="Close license dialog">×</button>
+      </div>
+      <p>One-time license for the host device. Players always join free.</p>
+      <div class="price-card"><strong>$24</strong><span>lifetime per host device</span></div>
+      <form id="license-form" class="stack-form">
+        <label for="license-input">License key</label>
+        <input id="license-input" type="text" autocomplete="off" placeholder="DR-XXXX-XXXX-XXXX">
+        <button class="premium-button" type="submit">Validate license</button>
+      </form>
+      <p id="license-feedback" class="field-help" role="status">Demo key: <code>DRAWRELAY-PREMIUM</code></p>
+    </div>
+  </div>
+
+  <div id="error-modal" class="modal hidden" role="alertdialog" aria-modal="true" aria-labelledby="error-title">
+    <div class="modal-card narrow-modal">
+      <div class="error-symbol" aria-hidden="true">!</div>
+      <h2 id="error-title">Something went wrong</h2>
+      <p id="error-message"></p>
+      <button id="error-action-button" class="primary-button" type="button">Try again</button>
+    </div>
+  </div>
+
+  <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+  <div id="live-region" class="sr-only" aria-live="assertive"></div>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

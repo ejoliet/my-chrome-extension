@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PromptClip</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div>
+        <h1>PromptClip</h1>
+        <p>Current page → clean Markdown</p>
+      </div>
+      <button id="settingsBtn" class="icon-btn" title="Settings" aria-label="Settings">⚙</button>
+    </header>
+
+    <section id="onboarding" class="card onboarding hidden">
+      <strong>First run</strong>
+      <p>Open a normal web page, click PromptClip, then copy Markdown into your LLM. No data leaves the browser.</p>
+      <button id="dismissOnboarding" class="secondary">Got it</button>
+    </section>
+
+    <section id="status" class="status card" aria-live="polite">
+      <div class="spinner" aria-hidden="true"></div>
+      <span id="statusText">Preparing extractor…</span>
+    </section>
+
+    <section id="fallbackBanner" class="banner warning hidden">
+      Fallback mode: Readability could not identify a primary article, so PromptClip stripped common page chrome and converted the remaining content.
+    </section>
+
+    <section id="errorBox" class="banner error hidden"></section>
+
+    <section id="result" class="hidden">
+      <div class="stats card">
+        <div><span id="tokenCount">0</span><small>tokens est.</small></div>
+        <div><span id="mdChars">0</span><small>Markdown chars</small></div>
+        <div><span id="rawCompare">0%</span><small>raw comparison</small></div>
+      </div>
+
+      <textarea id="preview" spellcheck="false" aria-label="Markdown preview"></textarea>
+      <p id="truncateNote" class="note hidden">Preview truncated after 50k chars. Copy and Download still use the full Markdown.</p>
+
+      <div class="actions">
+        <button id="copyBtn" class="primary">Copy</button>
+        <button id="downloadBtn" class="secondary">Download .md</button>
+        <button id="proBtn" class="secondary">Pro</button>
+      </div>
+    </section>
+
+    <section id="settingsPanel" class="card hidden">
+      <h2>Settings</h2>
+      <label>
+        YAML fields
+        <input id="yamlTemplate" type="text" value="title,url,captured_at,source,mode">
+      </label>
+      <label>
+        License key
+        <textarea id="licenseInput" rows="4" placeholder="Paste PromptClip license JSON"></textarea>
+      </label>
+      <div class="actions compact">
+        <button id="saveSettings" class="primary">Save</button>
+        <button id="verifyLicense" class="secondary">Verify license</button>
+      </div>
+      <p id="licenseStatus" class="note"></p>
+    </section>
+
+    <dialog id="upsellModal">
+      <form method="dialog" class="modal-card">
+        <h2>PromptClip Pro</h2>
+        <p>Batch export all open tabs into one Markdown bundle with a table of contents. First tab unlocked; the rest are locked.</p>
+        <ul>
+          <li>Batch export open tabs</li>
+          <li>Custom YAML front matter templates</li>
+          <li>Lifetime license placeholder: $19</li>
+        </ul>
+        <div class="locked-demo">
+          <div>1. Current tab <span>Unlocked</span></div>
+          <div>2. Other tabs <span>Locked</span></div>
+          <div>3. Markdown bundle <span>Locked</span></div>
+        </div>
+        <button class="primary" value="close">Close</button>
+      </form>
+    </dialog>
+
+    <div id="toast" class="toast hidden"></div>
+    <footer>No data leaves the browser.</footer>
+  </main>
+
+  <script src="../lib/tweetnacl/nacl-fast.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
