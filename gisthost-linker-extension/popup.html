@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GistHost Linker</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">GitHub Gist → GistHost</p>
+        <h1>Demo link builder</h1>
+      </div>
+      <a class="settings" href="options.html" target="_blank" title="Options">⚙</a>
+    </header>
+
+    <label class="field">
+      <span>Gist URL or ID</span>
+      <input id="gistInput" autocomplete="off" spellcheck="false" placeholder="https://gist.github.com/user/f41dc... or f41dc..." />
+    </label>
+
+    <div class="actions">
+      <button id="buildBtn" class="primary">Build link</button>
+      <button id="useTabBtn" type="button">Use current tab</button>
+    </div>
+
+    <section id="result" class="result hidden" aria-live="polite"></section>
+    <section id="files" class="files hidden" aria-live="polite"></section>
+    <p id="status" class="status" role="status"></p>
+  </main>
+  <script src="popup.js"></script>
+</body>
+</html>

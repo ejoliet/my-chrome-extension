@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GistHost Linker Options</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="options-body">
+  <main class="shell wide">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Options</p>
+        <h1>GitHub access</h1>
+      </div>
+    </header>
+
+    <p class="muted">
+      Add a GitHub fine-grained or classic token only if you need private gist read access.
+      The token is stored locally with chrome.storage.local and is sent only to api.github.com.
+    </p>
+
+    <label class="field">
+      <span>GitHub token</span>
+      <input id="tokenInput" type="password" autocomplete="off" spellcheck="false" placeholder="ghp_... or github_pat_..." />
+    </label>
+
+    <div class="actions">
+      <button id="saveBtn" class="primary">Save token</button>
+      <button id="clearBtn" type="button">Clear</button>
+    </div>
+
+    <p class="hint">For least privilege, create a token with gist read access only.</p>
+    <p id="status" class="status" role="status"></p>
+  </main>
+  <script src="options.js"></script>
+</body>
+</html>

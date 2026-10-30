@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "GistHost Linker",
+  "description": "Convert a GitHub Gist URL or ID into a clickable gisthost.github.io demo URL. Supports optional GitHub token for private gists.",
+  "version": "1.0.0",
+  "action": {
+    "default_title": "GistHost Linker",
+    "default_popup": "popup.html"
+  },
+  "options_page": "options.html",
+  "permissions": ["storage", "activeTab", "clipboardWrite"],
+  "host_permissions": [
+    "https://api.github.com/*"
+  ]
+}
