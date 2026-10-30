@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Tabscope",
+  "version": "0.2.0",
+  "description": "Local dashboard of your browsing history. All processing in-browser; nothing leaves your machine.",
+  "permissions": ["history", "favicon"],
+  "action": {
+    "default_title": "Open Tabscope dashboard",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "background": { "service_worker": "background.js" },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
