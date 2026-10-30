@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Page to Markdown</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <div class="heading"><span class="mark">M↓</span><div><h1>Copy as Markdown</h1><p id="hostname">Inspecting current tab…</p></div></div>
+    <button type="button" id="refresh" class="icon-button" title="Refresh extraction" aria-label="Refresh extraction">↻</button>
+  </header>
+  <main>
+    <label for="scope">Capture</label>
+    <select id="scope" aria-label="What to copy" disabled>
+      <option value="chat">Amazon Q conversation</option>
+      <option value="selection">Selected text</option>
+      <option value="page">Page content</option>
+    </select>
+    <div id="status" class="status" role="status" aria-live="polite">Reading the page…</div>
+    <div id="grant" class="grant" hidden>
+      <p id="grant-info">This page has an embedded AWS frame that needs separate permission.</p>
+      <button type="button" id="grant-button" class="secondary">Allow embedded AWS frame</button>
+    </div>
+    <label for="markdown">Markdown preview <span id="count" class="count">0 characters</span></label>
+    <textarea id="markdown" spellcheck="false" placeholder="Markdown will appear here. You can edit it before copying." aria-label="Markdown output"></textarea>
+    <button type="button" id="pick" class="pick secondary">Pick a region on the page</button>
+    <div class="buttons">
+      <button type="button" id="copy" class="primary" disabled>Copy Markdown</button>
+      <button type="button" id="download" class="secondary" disabled>Save .md</button>
+    </div>
+    <p class="note">Runs in this browser only. Nothing is sent to a server or stored by the extension.</p>
+  </main>
+  <script src="popup.js"></script>
+</body>
+</html>
