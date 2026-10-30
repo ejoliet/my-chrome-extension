@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "GitHub PR Review Hover",
+  "description": "Shows authoritative PR reviewers, review states, and comment authors from GitHub pull request list pages.",
+  "version": "4.0.0",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://api.github.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "options_page": "options.html",
+  "content_scripts": [
+    {
+      "matches": [
+        "https://github.com/*/*/pulls",
+        "https://github.com/*/*/pulls/*"
+      ],
+      "js": ["content.js"],
+      "css": ["style.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}
