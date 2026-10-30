@@ -1,0 +1,42 @@
+:root {
+  color-scheme: light dark;
+  font: 14px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: Canvas;
+  color: CanvasText;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 340px; }
+main { padding: 18px; }
+header { display: flex; gap: 12px; align-items: center; }
+h1 { margin: 0; font-size: 18px; }
+header p { margin: 2px 0 0; color: GrayText; }
+ol { margin: 18px 0; padding-left: 24px; }
+li + li { margin-top: 6px; }
+.actions { display: flex; gap: 8px; }
+button {
+  border: 1px solid color-mix(in srgb, CanvasText 25%, transparent);
+  border-radius: 8px;
+  padding: 9px 12px;
+  background: #0b7285;
+  color: white;
+  cursor: pointer;
+  font: inherit;
+}
+button.secondary { background: transparent; color: CanvasText; }
+button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visible {
+  outline: 3px solid Highlight;
+  outline-offset: 2px;
+}
+section {
+  margin-top: 14px;
+  border-top: 1px solid color-mix(in srgb, CanvasText 20%, transparent);
+  padding-top: 14px;
+}
+label { display: block; margin-bottom: 6px; font-weight: 600; }
+textarea { width: 100%; resize: vertical; font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.file-label { margin-top: 10px; font-weight: 500; }
+input[type="file"] { width: 100%; margin-bottom: 10px; }
+#license-status { min-height: 1.4em; margin-bottom: 0; }
+footer { display: flex; gap: 7px; margin-top: 16px; color: GrayText; }
+a { color: LinkText; }

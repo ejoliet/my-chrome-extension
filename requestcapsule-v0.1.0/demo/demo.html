@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RequestCapsule Demo</title>
+  <link rel="stylesheet" href="demo.css">
+</head>
+<body>
+  <main>
+    <header>
+      <img src="../icons/icon-48.png" width="40" height="40" alt="">
+      <div><h1>RequestCapsule sample capture</h1><p>Synthetic data. The same sanitizer and generators are used by the DevTools panel.</p></div>
+    </header>
+    <div class="layout">
+      <section>
+        <h2>Sample requests</h2>
+        <div id="samples" class="samples" role="listbox"></div>
+      </section>
+      <section>
+        <h2>Redaction review</h2>
+        <p id="mandatory"></p>
+        <div id="suggested"></div>
+        <div class="actions">
+          <button id="generate-free" type="button">Generate free artifacts</button>
+          <button id="generate-pro" type="button" class="secondary">Generate Pro ZIP</button>
+        </div>
+        <details>
+          <summary>Import development license</summary>
+          <textarea id="license-token" rows="3" placeholder="Paste signed token"></textarea>
+          <input id="license-file" type="file" accept=".json,.requestcapsule-license.json,application/json">
+          <button id="verify-license" type="button" class="secondary">Verify</button>
+          <p id="license-status" role="status"></p>
+        </details>
+        <p id="status" role="status" aria-live="polite"></p>
+      </section>
+      <section>
+        <h2>Generated preview</h2>
+        <nav>
+          <button type="button" data-result="curl">cURL</button>
+          <button type="button" data-result="fetch" class="secondary">Fetch</button>
+          <button type="button" data-result="markdown" class="secondary">Markdown</button>
+        </nav>
+        <pre id="output">Select a sample and generate artifacts.</pre>
+      </section>
+    </div>
+  </main>
+  <script type="module" src="demo.js"></script>
+</body>
+</html>

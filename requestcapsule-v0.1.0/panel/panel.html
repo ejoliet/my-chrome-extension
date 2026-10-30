@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RequestCapsule</title>
+  <link rel="stylesheet" href="panel.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <img src="../icons/icon-32.png" width="24" height="24" alt="">
+        <strong>RequestCapsule</strong>
+        <span class="version">v0.1.0</span>
+      </div>
+      <div class="toolbar" aria-label="Capture controls">
+        <button id="resume-button" type="button">Resume</button>
+        <button id="pause-button" type="button" class="secondary">Pause</button>
+        <button id="clear-button" type="button" class="secondary">Clear</button>
+        <button id="demo-button" type="button" class="secondary">Try sample</button>
+      </div>
+    </header>
+
+    <section id="disclosure" class="disclosure" aria-labelledby="disclosure-title">
+      <div>
+        <strong id="disclosure-title">Local DevTools access</strong>
+        <p>RequestCapsule sees requests available to this DevTools session. Reload the page or repeat the action you want to capture. Common credentials are removed before export, but review every artifact before sharing.</p>
+      </div>
+      <button id="dismiss-disclosure" type="button" class="secondary">Understood</button>
+    </section>
+
+    <nav class="mobile-tabs" aria-label="Panel sections">
+      <button type="button" data-tab="requests" aria-selected="true">Requests</button>
+      <button type="button" data-tab="inspect" aria-selected="false">Inspect</button>
+      <button type="button" data-tab="output" aria-selected="false">Output</button>
+    </nav>
+
+    <main class="workspace">
+      <section class="pane requests-pane active" data-pane="requests" aria-labelledby="requests-heading">
+        <div class="pane-header">
+          <h1 id="requests-heading">Requests</h1>
+          <span id="capture-status" class="status-pill">Capturing</span>
+        </div>
+        <div class="filters">
+          <label>
+            <span class="sr-only">Filter URL</span>
+            <input id="filter-text" type="search" placeholder="Filter URL or host">
+          </label>
+          <label>
+            <span class="sr-only">Method</span>
+            <select id="filter-method">
+              <option value="">All methods</option>
+              <option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option>
+            </select>
+          </label>
+          <label>
+            <span class="sr-only">Status</span>
+            <select id="filter-status">
+              <option value="">All statuses</option>
+              <option value="2">2xx</option><option value="3">3xx</option><option value="4">4xx</option><option value="5">5xx</option>
+            </select>
+          </label>
+          <label class="check"><input id="filter-json" type="checkbox" checked> JSON/text only</label>
+          <label class="check"><input id="filter-failed" type="checkbox"> Failed only</label>
+        </div>
+        <div id="request-empty" class="empty-state">
+          <strong>No API-like requests captured</strong>
+          <p>Open this panel, reload the inspected page, and perform the action you want to capture.</p>
+        </div>
+        <div id="request-list" class="request-list" role="listbox" aria-label="Captured network requests" tabindex="0"></div>
+      </section>
+
+      <section class="pane inspect-pane" data-pane="inspect" aria-labelledby="inspect-heading">
+        <div class="pane-header">
+          <h1 id="inspect-heading">Inspect</h1>
+          <button id="save-capture" type="button" class="secondary" disabled>Save sanitized</button>
+        </div>
+        <div id="inspect-empty" class="empty-state">
+          <strong>Select one request</strong>
+          <p>Response content is loaded only after selection.</p>
+        </div>
+        <div id="inspect-loading" class="empty-state" hidden>
+          <strong>Reading response body…</strong>
+          <p>This operation stops after five seconds.</p>
+        </div>
+        <article id="inspect-content" hidden>
+          <dl id="request-summary" class="summary-grid"></dl>
+          <details open><summary>Request headers</summary><pre id="request-headers"></pre></details>
+          <details><summary>Query parameters</summary><pre id="query-parameters"></pre></details>
+          <details open><summary>Request body</summary><pre id="request-body"></pre></details>
+          <details><summary>Response headers</summary><pre id="response-headers"></pre></details>
+          <details open><summary>Response body</summary><pre id="response-body"></pre></details>
+        </article>
+      </section>
+
+      <section class="pane output-pane" data-pane="output" aria-labelledby="output-heading">
+        <div class="pane-header">
+          <h1 id="output-heading">Sanitize &amp; generate</h1>
+          <span id="license-badge" class="status-pill neutral">Free</span>
+        </div>
+        <div id="output-empty" class="empty-state">
+          <strong>No request selected</strong>
+          <p>Select a request to review redactions and generate artifacts.</p>
+        </div>
+        <div id="output-content" hidden>
+          <section class="redaction-card" aria-labelledby="redaction-heading">
+            <h2 id="redaction-heading">Redaction review</h2>
+            <p id="mandatory-summary"></p>
+            <div id="suggested-redactions" class="redaction-options"></div>
+          </section>
+
+          <div class="generation-actions">
+            <button id="generate-free" type="button">Generate free artifacts</button>
+            <button id="generate-pro" type="button" class="secondary">Generate Pro ZIP</button>
+            <button id="cancel-generation" type="button" class="danger" hidden>Cancel</button>
+          </div>
+          <p id="progress-status" class="progress-status" role="status" aria-live="polite"></p>
+
+          <section id="free-results" hidden>
+            <div class="result-tabs" role="tablist" aria-label="Generated artifacts">
+              <button type="button" data-result="curl" aria-selected="true">cURL</button>
+              <button type="button" data-result="fetch" aria-selected="false">Fetch</button>
+              <button type="button" data-result="markdown" aria-selected="false">Markdown</button>
+            </div>
+            <pre id="result-code" tabindex="0"></pre>
+            <div class="result-actions">
+              <button id="copy-result" type="button" class="secondary">Copy</button>
+              <button id="download-markdown" type="button" class="secondary">Download Markdown</button>
+            </div>
+          </section>
+
+          <section id="pro-gate" class="pro-gate">
+            <h2>Pro Test Pack</h2>
+            <p>Playwright test, MSW handler, schema, TypeScript types, fixtures, README, and integrity manifest.</p>
+            <button id="open-license" type="button" class="secondary">Import signed license</button>
+            <div id="license-import" hidden>
+              <textarea id="license-token" rows="3" spellcheck="false" placeholder="Paste base64url entitlement token"></textarea>
+              <input id="license-file" type="file" accept=".json,.requestcapsule-license.json,application/json">
+              <button id="verify-license" type="button">Verify license</button>
+              <p id="license-status" role="status" aria-live="polite"></p>
+            </div>
+          </section>
+
+          <details class="local-data-card">
+            <summary>Local data</summary>
+            <p id="saved-capture-count">No saved captures.</p>
+            <div id="saved-capture-list"></div>
+            <div class="result-actions">
+              <button id="refresh-saved" type="button" class="secondary">Refresh</button>
+              <button id="delete-saved" type="button" class="secondary">Delete saved captures</button>
+              <button id="delete-all-data" type="button" class="danger">Delete all local data</button>
+            </div>
+          </details>
+
+          <section id="feedback-card" class="feedback-card" hidden>
+            <h2>Validation feedback</h2>
+            <fieldset>
+              <legend>Did this save enough work that you would use it again?</legend>
+              <label><input type="radio" name="reuse" value="yes"> Yes</label>
+              <label><input type="radio" name="reuse" value="partly"> Partly</label>
+              <label><input type="radio" name="reuse" value="no"> No</label>
+            </fieldset>
+            <label><input id="would-commit" type="checkbox"> I would commit these files with minor edits</label>
+            <label><input id="would-pay" type="checkbox"> I would pay $29 once for this workflow</label>
+            <label for="rewrite-notes">Which output required the most rewriting?</label>
+            <textarea id="rewrite-notes" rows="3"></textarea>
+            <button id="copy-feedback" type="button" class="secondary">Copy validation feedback</button>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="panel.js"></script>
+</body>
+</html>

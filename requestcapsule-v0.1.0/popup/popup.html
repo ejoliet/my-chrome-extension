@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RequestCapsule</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main>
+    <header>
+      <img src="../icons/icon-48.png" width="40" height="40" alt="">
+      <div>
+        <h1>RequestCapsule</h1>
+        <p>Live request in. Sanitized test pack out.</p>
+      </div>
+    </header>
+
+    <ol>
+      <li>Open Chrome DevTools.</li>
+      <li>Select <strong>RequestCapsule</strong>.</li>
+      <li>Reload the page or perform the API action.</li>
+      <li>Select a request and generate artifacts.</li>
+    </ol>
+
+    <div class="actions">
+      <button id="try-demo" type="button">Try sample</button>
+      <button id="show-license" class="secondary" type="button">Import license</button>
+    </div>
+
+    <section id="license-section" hidden>
+      <label for="license-token">Signed entitlement token</label>
+      <textarea id="license-token" rows="4" spellcheck="false" placeholder="Paste a base64url token"></textarea>
+      <label class="file-label" for="license-file">Or choose a .requestcapsule-license.json file</label>
+      <input id="license-file" type="file" accept=".json,.requestcapsule-license.json,application/json">
+      <button id="import-license" type="button">Verify and import</button>
+      <p id="license-status" role="status" aria-live="polite"></p>
+    </section>
+
+    <footer>
+      <a href="../PRIVACY.md" target="_blank" rel="noreferrer">Privacy</a>
+      <span aria-hidden="true">·</span>
+      <a href="mailto:support@requestcapsule.invalid">Support</a>
+    </footer>
+  </main>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>
