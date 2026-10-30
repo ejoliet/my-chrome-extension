@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Linkscape</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main class="app">
+    <header class="hero">
+      <div class="brand-row">
+        <div class="logo" aria-hidden="true">↗</div>
+        <div>
+          <h1>Linkscape</h1>
+          <p id="pageTitle" class="page-title">Reading current page…</p>
+        </div>
+        <button id="refreshButton" class="icon-button" title="Refresh links" aria-label="Refresh links">↻</button>
+      </div>
+
+      <div class="summary" aria-live="polite">
+        <div><strong id="visibleCount">0</strong><span>shown</span></div>
+        <div><strong id="totalCount">0</strong><span>links</span></div>
+        <div><strong id="domainCount">0</strong><span>domains</span></div>
+      </div>
+    </header>
+
+    <section class="toolbar" aria-label="Link controls">
+      <label class="search-box">
+        <span aria-hidden="true">⌕</span>
+        <input id="searchInput" type="search" placeholder="Search text, URL, or domain" autocomplete="off">
+        <kbd>/</kbd>
+      </label>
+
+      <div class="filters">
+        <button class="filter active" data-filter="all">All</button>
+        <button class="filter" data-filter="internal">Internal</button>
+        <button class="filter" data-filter="external" title="Links outside this website and its known first-party domains">Off-site</button>
+        <button class="filter" data-filter="files">Files</button>
+        <button class="filter" data-filter="mailto">Email</button>
+      </div>
+
+      <div class="actions">
+        <button id="selectAllButton" class="secondary">Select all</button>
+        <button id="copyButton" class="primary">Copy selected</button>
+        <button id="exportButton" class="secondary">Export ▾</button>
+      </div>
+
+      <div id="exportMenu" class="export-menu" hidden>
+        <button data-format="txt">Plain text (.txt)</button>
+        <button data-format="csv">Spreadsheet (.csv)</button>
+        <button data-format="json">Structured data (.json)</button>
+        <button data-format="md">Markdown (.md)</button>
+      </div>
+    </section>
+
+    <section id="statusPanel" class="status-panel" hidden></section>
+    <section id="linkList" class="link-list" aria-label="Links"></section>
+
+    <footer>
+      <span id="selectionStatus">0 selected</span>
+      <span>Local · no tracking</span>
+    </footer>
+  </main>
+
+  <template id="linkTemplate">
+    <article class="link-card">
+      <label class="check-wrap">
+        <input class="select-link" type="checkbox">
+        <span></span>
+      </label>
+      <div class="link-content">
+        <div class="link-heading">
+          <a class="link-title" target="_blank" rel="noopener noreferrer"></a>
+          <span class="link-type"></span>
+        </div>
+        <div class="link-url-row">
+          <span class="favicon" aria-hidden="true"></span>
+          <span class="link-url"></span>
+        </div>
+        <p class="link-context"></p>
+      </div>
+      <button class="copy-one icon-button" title="Copy URL" aria-label="Copy URL">⧉</button>
+    </article>
+  </template>
+
+  <script src="popup.js"></script>
+</body>
+</html>
