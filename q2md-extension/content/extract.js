@@ -73,8 +73,10 @@
     let text = children(node).map(inline).join('');
     if (!text.trim()) return '';
     if (tag === 'CODE' && node.parentElement?.tagName !== 'PRE') {
-      const ticks = '`'.repeat(Math.max(1, ...Array.from(text.matchAll(/`+/g), m => m[0].length + 1)));
-      return ticks + text.trim() + ticks;
+      const raw = plain(node).replace(/\s+/g, ' ').trim();
+      const ticks = '`'.repeat(Math.max(1, ...Array.from(raw.matchAll(/`+/g), m => m[0].length + 1)));
+      const padded = raw.startsWith('`') || raw.endsWith('`') ? ` ${raw} ` : raw;
+      return ticks + padded + ticks;
     }
     if (tag === 'STRONG' || tag === 'B') return `**${text.trim()}**`;
     if (tag === 'EM' || tag === 'I') return `*${text.trim()}*`;
@@ -86,12 +88,112 @@
     return text;
   }
 
+  // AWS Q and other highlighters add toolbar buttons, language labels, line
+  // gutters and token spans around the original code. Convert the code region,
+  // never the whole widget or its visible UI text.
+  const CODE_WIDGET = /(?:^|[^a-z])(?:code[-_]?block|code[-_]?snippet|code[-_]?example|syntax[-_]?highlight|highlighted[-_]?code)(?:$|[^a-z])/i;
+  const CODE_CONTENT = /(?:^|[^a-z])(?:code[-_]?content|code[-_]?body|code[-_]?lines|source[-_]?code|view-lines|cm-content)(?:$|[^a-z])/i;
+  const CODE_LINE = /(?:^|[^a-z])(?:code[-_]?line|view-line|cm-line|highlight-line|line-content|hljs-ln-code|hljs-ln-line)(?:$|[^a-z])/i;
+  const CODE_UI = /(?:^|[^a-z])(?:code[-_]?toolbar|code[-_]?header|code[-_]?actions|copy[-_]?button|copy[-_]?code|line[-_]?numbers?(?:[-_]?rows)?|line[-_]?gutter|gutter|linenumber|line-number|hljs-ln-numbers)(?:$|[^a-z])/i;
+  const attributeHint = el => [typeof el.className === 'string' ? el.className : '',
+    el.getAttribute('data-testid') || '', el.getAttribute('data-test-id') || '',
+    el.getAttribute('data-component') || ''].join(' ');
+
+  function isCodeWrapper(el) {
+    if (el.nodeType !== Node.ELEMENT_NODE || !['DIV', 'SECTION', 'FIGURE', 'ARTICLE'].includes(el.tagName)) return false;
+    return CODE_WIDGET.test(attributeHint(el));
+  }
+
+  function codeRoot(node) {
+    if (node.tagName === 'PRE') return node.querySelector('code') || node;
+    const pre = node.querySelector('pre');
+    if (pre) return codeRoot(pre);
+    const code = node.querySelector('code');
+    if (code) return code;
+    // Non-<pre> code widgets can render each line in a separate div/span.
+    const stack = [...children(node)];
+    while (stack.length) {
+      const child = stack.shift();
+      if (child.nodeType !== Node.ELEMENT_NODE) continue;
+      if (CODE_CONTENT.test(attributeHint(child))) return child;
+      stack.push(...children(child));
+    }
+    return node;
+  }
+
+  function codeText(root) {
+    function isLine(el) {
+      if (el.nodeType !== Node.ELEMENT_NODE) return false;
+      return CODE_LINE.test(attributeHint(el)) || /(?:^|\s)line(?=\s|$)/i.test(attributeHint(el)) ||
+        ['DIV', 'P', 'LI', 'TR'].includes(el.tagName);
+    }
+    function read(node) {
+      if (node.nodeType === Node.TEXT_NODE) return node.nodeValue || '';
+      if (node.nodeType !== Node.ELEMENT_NODE || isHidden(node)) return '';
+      if (SKIP.has(node.tagName) || (node !== root && (CODE_UI.test(attributeHint(node)) ||
+        node.getAttribute('role') === 'button'))) return '';
+      if (node.tagName === 'BR') return '\n';
+      if (node.tagName === 'WBR') return '';
+      const kids = children(node);
+      const hasLineChildren = kids.some(isLine);
+      let result = '';
+      for (const child of kids) {
+        // Indentation used to pretty-print the page markup is not code when
+        // individual code lines are already represented by block elements.
+        if (hasLineChildren && child.nodeType === Node.TEXT_NODE && !child.nodeValue.trim()) continue;
+        const piece = read(child);
+        if (!piece) continue;
+        if (isLine(child)) {
+          if (result && !result.endsWith('\n')) result += '\n';
+          result += piece;
+          if (!result.endsWith('\n')) result += '\n';
+        } else {
+          result += piece;
+        }
+      }
+      return result;
+    }
+    // Keep all indentation, intentional trailing spaces and interior blank
+    // lines. Trim only line breaks outside the code region.
+    return read(root).replace(/\r\n?/g, '\n').replace(/\u00a0/g, ' ')
+      .replace(/^\n+|\n+$/g, '');
+  }
+
+  function codeLanguage(widget, root) {
+    const nodes = [root, widget];
+    if (widget.tagName !== 'PRE') {
+      const pre = widget.querySelector('pre');
+      if (pre) nodes.push(pre);
+    }
+    for (const el of nodes) {
+      const explicit = el.getAttribute('data-language') || el.getAttribute('data-lang') ||
+        el.getAttribute('data-code-language');
+      if (explicit && /^[a-z0-9_+.-]{1,32}$/i.test(explicit)) return explicit.toLowerCase();
+      const found = attributeHint(el).match(/(?:^|\s)(?:language-|lang-)([a-z0-9_+.-]{1,32})(?=\s|$)/i);
+      if (found) return found[1].toLowerCase();
+    }
+    // Amazon-style widgets sometimes present the language in a separate label.
+    // Read known language-label elements, but do not include them in the body.
+    const stack = [...children(widget)];
+    while (stack.length) {
+      const el = stack.shift();
+      if (el.nodeType !== Node.ELEMENT_NODE) continue;
+      if (el === root || el.tagName === 'PRE' || el.tagName === 'CODE') continue;
+      const hint = attributeHint(el);
+      if (/(?:^|[^a-z])(?:code[-_]?language|language[-_]?label)(?:$|[^a-z])/i.test(hint)) {
+        const value = normalize(plain(el));
+        if (/^[a-z0-9_+.-]{1,32}$/i.test(value)) return value.toLowerCase();
+      }
+      stack.push(...children(el));
+    }
+    return '';
+  }
+
   function codeBlock(node) {
-    const code = node.querySelector('code') || node;
-    const raw = plain(code).replace(/\r\n?/g, '\n').replace(/^\n+|\n+$/g, '');
+    const root = codeRoot(node);
+    const raw = codeText(root);
     if (!raw) return '';
-    const cls = `${code.className || ''} ${node.className || ''}`;
-    const lang = cls.match(/(?:language-|lang-)([a-z0-9_+.-]+)/i)?.[1] || '';
+    const lang = codeLanguage(node, root);
     const runs = Array.from(raw.matchAll(/`+/g), m => m[0].length);
     const fence = '`'.repeat(Math.max(3, ...runs.map(n => n + 1)));
     return `${fence}${lang}\n${raw}\n${fence}`;
@@ -118,22 +220,45 @@
     const lines = [];
     for (const li of Array.from(list.children).filter(e => e.tagName === 'LI' && !isHidden(e))) {
       const nested = [];
-      const body = [];
+      const parts = [];
+      let inlineRun = [];
+      const flush = () => {
+        const value = normalize(inlineRun.join(''));
+        if (value) parts.push(value);
+        inlineRun = [];
+      };
       for (const child of children(li)) {
-        if (child.nodeType === Node.ELEMENT_NODE && (child.tagName === 'UL' || child.tagName === 'OL')) nested.push(child);
-        else body.push(child);
+        if (child.nodeType === Node.ELEMENT_NODE && (child.tagName === 'UL' || child.tagName === 'OL')) {
+          flush();
+          nested.push(child);
+        } else if (child.nodeType === Node.ELEMENT_NODE && (BLOCKS.has(child.tagName) || isCodeWrapper(child))) {
+          flush();
+          const value = render(child).trim();
+          if (value) parts.push(value);
+        } else {
+          inlineRun.push(inline(child));
+        }
       }
+      flush();
       const prefix = ordered ? `${count++}. ` : '- ';
-      const contents = normalize(body.map(n => {
-        if (n.nodeType === Node.ELEMENT_NODE && BLOCKS.has(n.tagName) && n.tagName !== 'BR') return render(n);
-        return inline(n);
-      }).join(' '));
-      const parts = (contents || '').split('\n');
-      lines.push('  '.repeat(depth) + prefix + (parts.shift() || ''));
-      for (const part of parts) if (part.trim()) lines.push('  '.repeat(depth + 1) + part.trim());
+      const indent = '  '.repeat(depth);
+      const continuation = indent + ' '.repeat(prefix.length);
+      const first = parts.shift() || '';
+      if (first.startsWith('```')) {
+        lines.push(indent + prefix.trimEnd());
+        lines.push(...first.split('\n').map(line => continuation + line));
+      } else {
+        const firstLines = first.split('\n');
+        lines.push(indent + prefix + firstLines.shift());
+        lines.push(...firstLines.map(line => continuation + line));
+      }
+      for (const part of parts) {
+        lines.push('');
+        lines.push(...part.split('\n').map(line => continuation + line));
+      }
       for (const child of nested) lines.push(listBlock(child, depth + 1));
     }
-    return lines.filter(Boolean).join('\n');
+    return lines.join('\n');
   }
 
   function render(node) {
@@ -141,7 +266,7 @@
     if (node.nodeType !== Node.ELEMENT_NODE || isHidden(node)) return '';
     const tag = node.tagName;
     if (SKIP.has(tag) || node.getAttribute('contenteditable') === 'true') return '';
-    if (tag === 'PRE') return codeBlock(node);
+    if (tag === 'PRE' || isCodeWrapper(node)) return codeBlock(node);
     if (tag === 'TABLE') return tableBlock(node);
     if (tag === 'UL' || tag === 'OL') return listBlock(node);
     if (/^H[1-6]$/.test(tag)) return '#'.repeat(Number(tag[1])) + ' ' + normalize(children(node).map(inline).join(''));
@@ -164,7 +289,7 @@
       run = [];
     };
     for (const child of children(node)) {
-      if (child.nodeType === Node.ELEMENT_NODE && (BLOCKS.has(child.tagName) || child.tagName === 'BR')) {
+      if (child.nodeType === Node.ELEMENT_NODE && (BLOCKS.has(child.tagName) || isCodeWrapper(child) || child.tagName === 'BR')) {
         flush();
         if (child.tagName === 'BR') continue;
         const text = render(child).trim();
@@ -178,11 +303,7 @@
   }
 
   function finalize(raw) {
-    const normalized = String(raw || '')
-      .replace(/\u200b/g, '')
-      .replace(/[ \t]+\n/g, '\n')
-      .replace(/\n{4,}/g, '\n\n\n')
-      .trim();
+    const normalized = String(raw || '').replace(/\u200b/g, '').trim();
     if (normalized.length <= MAX_MARKDOWN) return {markdown: normalized, truncated: false};
     return {markdown: normalized.slice(0, MAX_MARKDOWN) + '\n\n[Export truncated at 240,000 characters]', truncated: true};
   }

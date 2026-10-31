@@ -17,7 +17,7 @@ Copy the current Amazon Q conversation, selected text, or the readable page as M
 4. If chat detection fails, click **Pick a region on the page**, hover over the conversation panel, click to lock the selection, use **↑ Parent** to expand it, and click **Copy region**. Press Esc to exit.
 5. If a conversation is embedded in a cross-origin AWS iframe, click **Allow embedded AWS frame** when offered. Chrome requests access to the listed AWS iframe origin(s). Then retry.
 
-The export handles headings, text, links, emphasis, lists, code blocks, tables, and open Shadow DOM. It filters buttons, forms, scripts, hidden content, and navigation inside the chosen export region. Each iframe is inspected separately when browser permissions allow it.
+The export handles headings, text, links, emphasis, lists, code blocks, tables, and open Shadow DOM. Syntax-highlighted code is emitted as Markdown fenced code with language tags where available; code text and indentation are preserved, but HTML color styling is not (a Markdown viewer handles syntax highlighting). It filters buttons, forms, scripts, hidden content, and navigation inside the chosen export region. Each iframe is inspected separately when browser permissions allow it.
 
 ## Permissions and privacy
 
@@ -39,9 +39,20 @@ The export handles headings, text, links, emphasis, lists, code blocks, tables, 
 - Export cap: 240,000 Markdown characters per frame; long pages report truncation.
 - The extension does not read chat data from AWS APIs or bypass the console's access controls.
 
+## v0.1.1: code block fixes
+
+- Retain source indentation, interior blank lines, and trailing spaces in fenced code (no global whitespace collapse).
+- Extract syntax-highlighted tokens as literal code, without HTML styling or Markdown escaping.
+- Ignore AWS-style Copy controls, toolbar headers, language UI, and line-number gutters.
+- Preserve newline boundaries from code displayed as separate `<div>`/`<span>` lines or Highlight.js line tables.
+- Render fenced code inside list items with correct indentation.
+- Use longer backtick fences when the code itself contains triple backticks.
+
+**Compatibility:** Recognition is based on observable Document Object Model (DOM) structure and common code-widget attributes, not Amazon Q internal APIs. A future AWS renderer change may require an updated fixture or selector. If a specific block still fails, inspect the enclosing code element's HTML in DevTools (remove secrets before sharing).
+
 ## Test
 
-Run `bash scripts/test.sh` from the repository root. This checks the manifest, JavaScript syntax, and runs the extractor against a dependency-free mock Document Object Model (DOM), covering a representative Amazon Q sidebar, open Shadow DOM, Markdown formatting, and unsafe URLs. The HTML fixture in `tests/fixture.html` is also available for manual browser inspection. Real AWS console testing remains necessary.
+Run `bash scripts/test.sh` from the repository root. This checks the manifest, JavaScript syntax, and runs the extractor against a dependency-free mock Document Object Model (DOM), covering a representative Amazon Q sidebar, open Shadow DOM, Markdown formatting, and unsafe URLs. The HTML fixture in `tests/fixture.html` is also available for manual browser inspection. For an optional real DOM check in Chromium (Playwright installed), run `python tests/test_browser.py`. Real AWS console testing remains necessary.
 
 Then test in your own browser:
 
